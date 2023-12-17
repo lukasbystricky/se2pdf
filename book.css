@@ -1,0 +1,104 @@
+@charset "utf-8";
+
+@page { 
+    margin: 2cm 2cm 3cm 2cm; 
+    size: 140mm 210mm;
+}
+@page { 
+    @bottom-center { 
+        position: absolute; 
+    } 
+}
+
+@page full {
+    @bottom-center { 
+        content: none; 
+    } 
+    margin: 0; 
+}
+
+@page clean {
+    @bottom-center {
+      content: none;
+    }
+}
+
+@page frontmatterpage {
+    counter-increment: frontmatterPage;
+    @bottom-center { 
+        content: counter(frontmatterPage, lower-roman); 
+        position: absolute; 
+    } 
+}
+
+@page bodymatterpage {
+    counter-increment: bodymatterPage;
+    @bottom-center { 
+        content: counter(bodymatterPage); 
+        position: absolute; 
+    } 
+}
+
+.fullpage { 
+    page: full; 
+}
+
+.fullpage img { 
+    display: block; 
+    bottom: 0; 
+    height: 210mm; 
+    left: 0; 
+    margin: 0; 
+    object-fit: cover; 
+    position: absolute; 
+    width: 140mm;
+}
+
+section {
+    page-break-after: always;
+}
+
+section, article {
+    text-align: justify;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.frontmatter {
+    page: frontmatterpage;
+}
+
+.bodymatter, .backmatter {
+    page: bodymatterpage;
+}
+
+#titlepage, #imprint {
+    page: clean;
+}
+
+#contents ol {
+    display: block;
+    margin: 1em 0;
+}
+
+#contents li {
+    display: block;
+    word-wrap:break-word;
+}
+
+#contents li + span {
+    max-width:300px;
+}
+
+#contents a.frontmatter::after {
+    content: target-counter(attr(href), frontmatterPage, lower-roman);
+    float: right;
+}
+
+#contents a::after {
+    content: target-counter(attr(href), bodymatterPage);
+    float: right;
+}
