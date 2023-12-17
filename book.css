@@ -75,8 +75,16 @@ a {
     page: bodymatterpage;
 }
 
-#titlepage, #imprint {
+#titlepage, #imprint, #backcover{
     page: clean;
+}
+
+#backcover div {
+    display: block;
+    max-height: 190mm;
+    max-width: 100mm;
+    font-size: 0.8em;
+    justify-content: center;
 }
 
 #contents ol {
