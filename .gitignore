@@ -1,0 +1,6 @@
+*.log
+*.xhtml
+*.pdf
+*.log
+*.css
+!book.css
