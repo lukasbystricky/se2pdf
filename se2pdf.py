@@ -45,11 +45,13 @@ def generate_css():
                 css.insertRule(rule)
 
     css_str = css.cssText.decode("utf-8")
-    css_str = re.sub("se:", "", css_str)                                    # remove se: specifier
-    css_str = re.sub("z3998:", "", css_str)                                 # remove z3998: specifier
-    css_str = re.sub("\\[(?:\\|type~=\")(.+?)\"\\]", ".\\1", css_str)       # replace epub|type with class
-    css_str = re.sub("(?:hanging-punctuation: first last);\n", "", css_str) # hanging-punctuation is not recognized by weasyprint
-    css_str = re.sub("font-size: .+?;", "font-size: " + backcover_font_size + ";", css_str) # adjust back cover font size
+    css_str = re.sub("\"se:", "\"", css_str)                           # remove se: specifier
+    css_str = re.sub("z3998:", "", css_str)                            # remove z3998: specifier
+    css_str = re.sub("\\[(?:\\|type~=\")(.+?)\"\\]", ".\\1", css_str)  # replace epub|type with class
+    css_str = re.sub("xml\\|", "", css_str)                          # remove xml namespace specifier
+
+    # override styling from core.css
+    css_str = css_str + "\na.noteref { font-size: 0.6em; vertical-align: top }"
 
     f=open(book_name + ".css","w")
     f.write(css_str)
@@ -93,6 +95,7 @@ def generate_html():
     html_str = html_str.replace("text/", "#")
     html_str = html_str.replace("z3998:", "",)
     html_str = html_str.replace("epub:type", "class")
+    html_str = html_str.replace("xml:lang", "lang")
     html_str = html_str.replace("<article class=\"", "<article class=\"bodymatter ")
     html_str = html_str.replace("../", base_directory + "src/epub/")
     
