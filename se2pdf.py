@@ -101,13 +101,8 @@ def generate_html():
     
     html_str +=  "<section id=\"backcover\"><div>" + xmlsoup.find("meta", {"id":"long-description"}).text + "</div></section>"
 
-    soup = BeautifulSoup(html_str, 'html.parser')
-    for el in soup.find_all():
-        if (len(x.get_text(strip=True))):
-            x.decompose()
-
     f=open(book_name + ".xhtml","w")
-    f.write(soup.prettify(formatter='html'))
+    f.write(html_str)
     f.close()
 
 def create_toc(exclude_ids, frontmatter_ids):
