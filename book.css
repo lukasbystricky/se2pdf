@@ -50,6 +50,11 @@
     font-variant: small-caps;
     src: url("https://www.1001fonts.com/download/font/eb-garamond.smallcaps-12-regular.otf");
 }
+@font-face {
+    font-family: 'EB Garamond';
+    font-style: italic;
+    src: url("https://www.1001fonts.com/download/font/eb-garamond.12-italic.otf");
+}
 
 html {
     font-family: 'EB Garamond';
