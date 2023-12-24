@@ -149,6 +149,8 @@ def correct_hrefs(soup):
         href = href.replace(".xhtml", "") #remove trailing .xhtml
         if "colophon" not in soup.body.section["epub:type"] and "imprint" not in soup.body.section["epub:type"]:
             href = re.sub("[\\S]+#", "#", href) #remove extra # in id references, proper urls in colophon and imprint can extra #
+        else:
+            href = href.replace("uncopyright", "#uncopyright")
 
         a_tag["href"] = href
         
