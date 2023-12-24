@@ -50,7 +50,7 @@ def generate_css():
     css_str = re.sub("\"se:", "\"", css_str)                           # remove se: specifier
     css_str = re.sub("z3998:", "", css_str)                            # remove z3998: specifier
     css_str = re.sub("\\[(?:\\|type~=\")(.+?)\"\\]", ".\\1", css_str)  # replace epub|type with class
-    css_str = re.sub("xml\\|", "", css_str)                          # remove xml namespace specifier
+    css_str = re.sub("xml\\|", "", css_str)                            # remove xml namespace specifier
 
     # override styling from core.css
     css_str = css_str + "\na.noteref { font-size: 0.6em; vertical-align: top }"
@@ -68,7 +68,7 @@ def generate_html():
 
     html_str = "<section class=\"fullpage\"> <img src=\"" + base_directory + "/src/epub/images/cover.svg\"></img></section>"
     
-    exclude_from_toc = ["text/titlepage.xhtml", "text/imprint.xhtml", "text/colophon.xhtml", "text/uncopyright.xhtml"]
+    exclude_from_toc = ["#titlepage", "#imprint", "#colophon", "#uncopyright"]
     frontmatter_sections = []
     tocAdded = False
 
@@ -83,10 +83,10 @@ def generate_html():
             body.section["epub:type"] = body.section.get("epub:type", "") + " " + body.get("epub:type")
 
         if "frontmatter" in body.get("epub:type"):
-            frontmatter_sections.append("text/" + body.section.get("id") + ".xhtml")
+            frontmatter_sections.append("#" + body.section.get("id"))
             if ("dedication" in body.section.get("epub:type")) \
                  or ("epigraph" in body.section.get("epub:type")):
-                exclude_from_toc.append("text/" + body.section.get("id") + ".xhtml")
+                exclude_from_toc.append("#" + body.section.get("id"))
             
         elif not skip_toc and not tocAdded:
                 html_tmp += create_toc(exclude_from_toc, frontmatter_sections)
@@ -113,15 +113,16 @@ def create_toc(exclude_ids, frontmatter_ids):
     section = soup.nav
 
     for a_tag in soup.find_all('a'):
-        if a_tag.get("href", "") in exclude_ids:
-            a_tag.decompose()
-
-    for a_tag in soup.find_all('a'):
         href = a_tag["href"]
         href = href.replace("text/", "#")
         href = href.replace(".xhtml", "")
         href = re.sub("[\\S]+#", "#", href)
         a_tag["href"] = href
+
+        if a_tag.get("href", "") in exclude_ids:
+            a_tag.decompose()
+            continue
+
         if a_tag.get("href", "") in frontmatter_ids:
             a_tag["class"] = a_tag.get("class", []) + ["frontmatter"]
 
