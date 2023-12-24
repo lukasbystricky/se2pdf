@@ -75,6 +75,8 @@ def generate_html():
         temp1=temp.split(".")[0]
         body = get_body(base_directory + "src/epub/text/" + temp1 + ".xhtml")
 
+        html_tmp = ""
+
         if body.section is not None:
             body.section["epub:type"] = body.section.get("epub:type", "") + " " + body.get("epub:type")
 
@@ -85,19 +87,16 @@ def generate_html():
                 exclude_from_toc.append("text/" + body.section.get("id") + ".xhtml")
             
         elif not skip_toc and not tocAdded:
-                html_str += create_toc(exclude_from_toc, frontmatter_sections)
+                html_tmp += create_toc(exclude_from_toc, frontmatter_sections)
                 tocAdded = True
 
-        html_str += str(re.sub("(?:, )?\\[?\\'\\\\n\\'(?:, )?\\]?", "", str(body.contents)))
+        html_tmp += str(re.sub("(?:, )?\\[?\\'\\\\n\\'(?:, )?\\]?", "", str(body.contents)))
+        html_tmp = html_tmp.replace("z3998:", "",)
+        html_tmp = html_tmp.replace("epub:type", "class")
+        html_tmp = html_tmp.replace("xml:lang", "lang")
+        html_tmp = html_tmp.replace("<article class=\"", "<article class=\"bodymatter ")
 
-    html_str = re.sub("(<a.*href=\")[\\S]+#", "\\1#", html_str)
-    html_str = html_str.replace(".xhtml", "")
-    html_str = html_str.replace("text/", "#")
-    html_str = html_str.replace("z3998:", "",)
-    html_str = html_str.replace("epub:type", "class")
-    html_str = html_str.replace("xml:lang", "lang")
-    html_str = html_str.replace("<article class=\"", "<article class=\"bodymatter ")
-    html_str = html_str.replace("../", base_directory + "src/epub/")
+        html_str += html_tmp
     
     html_str +=  "<section id=\"backcover\"><div>" + xmlsoup.find("meta", {"id":"long-description"}).text + "</div></section>"
 
@@ -116,6 +115,11 @@ def create_toc(exclude_ids, frontmatter_ids):
             a_tag.decompose()
 
     for a_tag in soup.find_all('a'):
+        href = a_tag["href"]
+        href = href.replace("text/", "#")
+        href = href.replace(".xhtml", "")
+        href = re.sub("[\\S]+#", "#", href)
+        a_tag["href"] = href
         if a_tag.get("href", "") in frontmatter_ids:
             a_tag["class"] = a_tag.get("class", []) + ["frontmatter"]
 
@@ -131,7 +135,24 @@ def get_body(file):
     html = urllib.request.urlopen(file)
     html_str = html.read().decode("utf-8")
     soup = BeautifulSoup(html_str, 'html.parser')
+
+    correct_hrefs(soup)
+
     return soup.body
+
+def correct_hrefs(soup):
+    for a_tag in soup.find_all('a'):
+        href = a_tag["href"]
+        href = href.replace(".xhtml", "") #remove trailing .xhtml
+        if "colophon" not in soup.body.section["epub:type"] and "imprint" not in soup.body.section["epub:type"]:
+            href = re.sub("[\\S]+#", "#", href) #remove extra # in id references, proper urls in colophon and imprint can extra #
+
+        a_tag["href"] = href
+        
+    for img_tag in soup.find_all('img'):
+        src =  img_tag["src"]
+        src = src.replace("../", base_directory + "src/epub/")
+        img_tag["src"] = src
 
 generate_css()
 generate_html()
