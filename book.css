@@ -127,3 +127,15 @@ section, article {
     content: target-counter(attr(href), bodymatterPage);
     float: right;
 }
+
+a.pagereference::before, a.fontpagereference::before {
+    content: "page ";
+}
+
+a.pagereference::after {
+    content: target-counter(attr(href), bodymatterPage);
+}
+
+a.fontpagereference::after{
+    content: target-counter(attr(href), frontmatterPage, lower-roman);
+}

@@ -96,6 +96,8 @@ def generate_html():
                     html_tmp += create_toc(exclude_from_toc, frontmatter_sections)
                     tocAdded = True
 
+            add_page_references(body.section, frontmatter_sections)
+
             html_tmp += str(re.sub("(?:, )?\\[?\\'\\\\n\\'(?:, )?\\]?", "", str(body.contents)))
             html_tmp = html_tmp.replace("z3998:", "",)
             html_tmp = html_tmp.replace("epub:type", "class")
@@ -181,6 +183,18 @@ def correct_hrefs(soup):
         src =  img_tag["src"]
         src = src.replace("../", base_directory + "src/epub/")
         img_tag["src"] = src
+
+def add_page_references(soup, frontmatter_sections):
+    page_ref_contents = ["here", "Here", "above", "Above", "below", "Below", "supra", "Supra", "infra", "Infra"]
+    for a_tag in soup.find_all('a'):
+        href = a_tag["href"]
+        if "-p-" in href:
+            if re.sub("<.*?>(.*?)</.*?>","\\1", str(a_tag.contents[0])) in page_ref_contents:
+                a_tag.contents = ""
+                if re.search("(#.*)(?:-p-)", str(a_tag)).group(1) in frontmatter_sections:
+                    a_tag["class"] = a_tag.get("class", []) + ["fontpagereference"]
+                else:
+                    a_tag["class"] = a_tag.get("class", []) + ["pagereference"]
 
 generate_css()
 generate_html()
