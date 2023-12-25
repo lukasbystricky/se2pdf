@@ -69,7 +69,8 @@ def generate_html():
     html_str = "<section class=\"fullpage\"> <img src=\"" + base_directory + "/src/epub/images/cover.svg\"></img></section>"
     
     exclude_from_toc = ["#titlepage", "#imprint", "#colophon", "#uncopyright"]
-    frontmatter_sections = []
+    frontmatter_sections = get_frontmatter(files)
+
     tocAdded = False
 
     for x in files:
@@ -80,25 +81,28 @@ def generate_html():
         html_tmp = ""
 
         if body.section is not None:
-            body.section["epub:type"] = body.section.get("epub:type", "") + " " + body.get("epub:type")
 
-        if "frontmatter" in body.get("epub:type"):
-            frontmatter_sections.append("#" + body.section.get("id"))
+            if ("halftitlepage" in body.section.get("epub:type")):
+                body.section["epub:type"] = body.section.get("epub:type", "") + " " + "bodymatter"
+            else:
+                body.section["epub:type"] = body.section.get("epub:type", "") + " " + body.get("epub:type")
+
             if ("dedication" in body.section.get("epub:type")) \
-                 or ("epigraph" in body.section.get("epub:type")):
+                    or ("epigraph" in body.section.get("epub:type")):
                 exclude_from_toc.append("#" + body.section.get("id"))
-            
-        elif not skip_toc and not tocAdded:
-                html_tmp += create_toc(exclude_from_toc, frontmatter_sections)
-                tocAdded = True
 
-        html_tmp += str(re.sub("(?:, )?\\[?\\'\\\\n\\'(?:, )?\\]?", "", str(body.contents)))
-        html_tmp = html_tmp.replace("z3998:", "",)
-        html_tmp = html_tmp.replace("epub:type", "class")
-        html_tmp = html_tmp.replace("xml:lang", "lang")
-        html_tmp = html_tmp.replace("<article class=\"", "<article class=\"bodymatter ")
+            if "frontmatter" not in body.section.get("epub:type") and "halftitlepage" not in body.section.get("epub:type") \
+                and not skip_toc and not tocAdded:
+                    html_tmp += create_toc(exclude_from_toc, frontmatter_sections)
+                    tocAdded = True
 
-        html_str += html_tmp
+            html_tmp += str(re.sub("(?:, )?\\[?\\'\\\\n\\'(?:, )?\\]?", "", str(body.contents)))
+            html_tmp = html_tmp.replace("z3998:", "",)
+            html_tmp = html_tmp.replace("epub:type", "class")
+            html_tmp = html_tmp.replace("xml:lang", "lang")
+            html_tmp = html_tmp.replace("<article class=\"", "<article class=\"bodymatter ")
+
+            html_str += html_tmp
     
     html_str +=  "<section id=\"backcover\"><div>" + xmlsoup.find("meta", {"id":"long-description"}).text + "</div></section>"
 
@@ -111,6 +115,8 @@ def create_toc(exclude_ids, frontmatter_ids):
     toc_str = toc.read().decode("utf-8")
     soup = BeautifulSoup(toc_str, 'html.parser')
     section = soup.nav
+    section["epub:type"] = section.get("epub:type", "") + " " + "bodymatter"
+    section["id"] = "contents"
 
     for a_tag in soup.find_all('a'):
         href = a_tag["href"]
@@ -123,14 +129,14 @@ def create_toc(exclude_ids, frontmatter_ids):
             a_tag.decompose()
             continue
 
-        if a_tag.get("href", "") in frontmatter_ids:
+        if a_tag.get("href", "") != "#halftitlepage" and a_tag.get("href", "") in frontmatter_ids:
             a_tag["class"] = a_tag.get("class", []) + ["frontmatter"]
 
     soup_str = str(section)
     soup_str = re.sub("<li>[\\s]+?</li>", "", soup_str)
     soup_str = re.sub("(<a .*?>)[\\s\n]*?(.*?)[\\s\n]*?</a>", "\\2\\1</a>", soup_str)
     soup_str = re.sub("<li>([\\s\\S]+?)<a", "<li><span>\\1</span><a", soup_str)
-    soup_str = re.sub("<nav epub:type=\"toc\" id=\"toc\">", "<section id=\"contents\">", soup_str)
+    soup_str = re.sub("<nav ", "<section ", soup_str)
     soup_str = re.sub("</nav>", "</section>", soup_str)
     return soup_str
 
@@ -142,6 +148,23 @@ def get_body(file):
     correct_hrefs(soup)
 
     return soup.body
+
+def get_frontmatter(files):
+    frontmatter = ["#titlepage", "#imprint"]
+    all_files = []
+
+    for f in files:
+        all_files.append("#" + f["idref"].replace(".xhtml",""))
+
+    if "#halftitlepage" in all_files:
+        for f in all_files:
+            if f == "#halftitlepage":
+                break
+            
+            if f not in frontmatter:
+                frontmatter.append(f)
+
+    return frontmatter
 
 def correct_hrefs(soup):
     for a_tag in soup.find_all('a'):
