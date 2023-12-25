@@ -53,7 +53,7 @@ def generate_css():
     css_str = re.sub("xml\\|", "", css_str)                            # remove xml namespace specifier
 
     # override styling from core.css
-    css_str = css_str + "\na.noteref { font-size: 0.6em; vertical-align: top }"
+    css_str = css_str + "\na.noteref { vertical-align: top }"
 
     f=open(book_name + ".css","w")
     f.write(css_str)
