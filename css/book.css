@@ -111,6 +111,7 @@ section, article {
 #contents ol {
     display: block;
     margin: 1em 0;
+    padding-left: 1em;
 }
 
 #contents li {
@@ -142,4 +143,14 @@ a.pagereference::after {
 
 a.fontpagereference::after{
     content: target-counter(attr(href), frontmatterPage, lower-roman);
+}
+
+footer {
+    break-before: avoid;
+    break-inside: avoid;
+}
+
+header {
+    break-after: avoid;
+    break-inside: avoid;
 }
