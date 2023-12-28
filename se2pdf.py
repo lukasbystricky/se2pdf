@@ -101,7 +101,7 @@ def generate_html():
     files=xmlsoup.find_all("itemref")
     
     # exlcude some files from table of contents, determine which files are frontmatter
-    exclude_from_toc = ["#titlepage", "#imprint", "#colophon", "#uncopyright"]
+    exclude_from_toc = ["#titlepage", "#imprint", "#colophon", "#uncopyright", "#loi"]
     frontmatter_sections = get_frontmatter(files)
 
     tocAdded = False
@@ -110,6 +110,9 @@ def generate_html():
     for x in files:
         temp=x.get("idref")
         temp1=temp.split(".")[0]
+
+        if temp1 == "loi": # skip loi for now
+            continue
 
         # get soup containing file body
         body = get_body(base_directory + "src/epub/text/" + temp1 + ".xhtml")
