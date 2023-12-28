@@ -32,9 +32,13 @@ def write_pdf():
         os.remove(book_name + ".log")
 
 def generate_css():
-    css = cssutils.parseFile("book.css")
-    
+    css = cssutils.parseFile("css/book.css")
+    css_custom = cssutils.parseFile("css/custom.css")
     css_files = ["se.css", "core.css", "local.css"]
+
+    for rule in css_custom:
+            if rule.type == 1: # only insert regular style rules
+                css.insertRule(rule)
 
     for i in range(0, len(css_files)):
         stylesheet = urllib.request.urlopen(base_directory + "src/epub/css/" + css_files[i])
