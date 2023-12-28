@@ -17,6 +17,7 @@ base_directory = "https://raw.githubusercontent.com/standardebooks/" + book_name
 cssutils.log.setLevel(logging.CRITICAL)
 
 def write_pdf():
+    """Convert generated html and css to pdf."""
     if os.path.isfile(book_name + ".log"):
         os.remove(book_name + ".log")
 
@@ -32,6 +33,14 @@ def write_pdf():
         os.remove(book_name + ".log")
 
 def generate_css():
+    """Generate single css file.
+    
+    Reads in the css files in css/book.css and css/custom.css as well as
+    the se.css, core.css, and local.css files from the ebook repository.
+    Adds all the rules from the local css files, as well as the regular 
+    style rules (i.e. not namespaces) from the remote files to a single
+    css file. 
+    """
     css = cssutils.parseFile("css/book.css")
     css_custom = cssutils.parseFile("css/custom.css")
     css_files = ["se.css", "core.css", "local.css"]
@@ -50,6 +59,7 @@ def generate_css():
             if rule.type == 1: # only insert regular style rules
                 css.insertRule(rule)
 
+    # Weasyprint does not support namespaces, so we will convert these to classes
     css_str = css.cssText.decode("utf-8")
     css_str = re.sub("\"se:", "\"", css_str)                           # remove se: specifier
     css_str = re.sub("z3998:", "", css_str)                            # remove z3998: specifier
@@ -59,64 +69,103 @@ def generate_css():
     # override styling from core.css
     css_str = css_str + "\na.noteref { vertical-align: top }"
 
+    # write to file
     f=open(book_name + ".css","w")
     f.write(css_str)
     f.close()
 
 def generate_html():
+    """ Generatre single html file.
 
+    Creates a single html file containing the entire book. The file contains:
+        - front cover
+        - titlepage
+        - imprint
+        - frontmatter (if it exisits)
+        - half title page (if it exists)
+        - table of contents (optional)
+        - bodymatter
+        - backmatter, including endnotes if they exist
+        - colophon
+        - uncopyright
+        - back cover
+    """
+
+    # start with front cover
+    html_str = "<section class=\"fullpage\"> <img src=\"" + base_directory + "/src/epub/images/cover.svg\"></img></section>"
+    
+    # read in content.opf, find files to include
     content = urllib.request.urlopen(base_directory + "src/epub/content.opf")
 
     xmlsoup = BeautifulSoup(content.read().decode("utf-8"), 'xml')
     files=xmlsoup.find_all("itemref")
-
-    html_str = "<section class=\"fullpage\"> <img src=\"" + base_directory + "/src/epub/images/cover.svg\"></img></section>"
     
+    # exlcude some files from table of contents, determine which files are frontmatter
     exclude_from_toc = ["#titlepage", "#imprint", "#colophon", "#uncopyright"]
     frontmatter_sections = get_frontmatter(files)
 
     tocAdded = False
 
+    # loop over files
     for x in files:
         temp=x.get("idref")
         temp1=temp.split(".")[0]
+
+        # get soup containing file body
         body = get_body(base_directory + "src/epub/text/" + temp1 + ".xhtml")
 
         html_tmp = ""
-
         if body.section is not None:
 
+            # add body type information to section
             if ("halftitlepage" in body.section.get("epub:type")):
+                # half title page is considered bodymatter for our purposes
                 body.section["epub:type"] = body.section.get("epub:type", "") + " " + "bodymatter"
             else:
                 body.section["epub:type"] = body.section.get("epub:type", "") + " " + body.get("epub:type")
 
+            # exclude dedications and epigraphs from table of contents
             if ("dedication" in body.section.get("epub:type")) \
                     or ("epigraph" in body.section.get("epub:type")):
                 exclude_from_toc.append("#" + body.section.get("id"))
 
-            if "frontmatter" not in body.section.get("epub:type") and "halftitlepage" not in body.section.get("epub:type") \
-                and not skip_toc and not tocAdded:
+            # create the table of contents after the frontmatter (including half title page)
+            if "frontmatter" not in body.get("epub:type") and not skip_toc and not tocAdded:
                     html_tmp += create_toc(exclude_from_toc, frontmatter_sections)
                     tocAdded = True
 
+            # replace "see here" type notes with reference to page number
             add_page_references(body.section, frontmatter_sections)
 
+            # clean up, replace epub:type with class; remove xml and z3998 namespaces
             html_tmp += str(re.sub("(?:, )?\\[?\\'\\\\n\\'(?:, )?\\]?", "", str(body.contents)))
             html_tmp = html_tmp.replace("z3998:", "",)
             html_tmp = html_tmp.replace("epub:type", "class")
-            html_tmp = html_tmp.replace("xml:lang", "lang")
+            html_tmp = html_tmp.replace("xml:", "")
             html_tmp = html_tmp.replace("<article class=\"", "<article class=\"bodymatter ")
 
+            # add to book
             html_str += html_tmp
     
+    # create back cover by extracting long description from content.opf
     html_str +=  "<section id=\"backcover\"><div>" + xmlsoup.find("meta", {"id":"long-description"}).text + "</div></section>"
 
+    # write file
     f=open(book_name + ".xhtml","w")
     f.write(html_str)
     f.close()
 
 def create_toc(exclude_ids, frontmatter_ids):
+    """Creates the table of contents.
+    
+    Uses the list structure of the remove toc.xhtml, but replaces links 
+    to section titles with a proper page reference.
+
+    exclude_ids     -- sections to skip in toc
+    frontmatter_ids -- frontmatter sections, these need to be marked
+    """
+
+    # read remove toc
     toc = urllib.request.urlopen(base_directory + "src/epub/toc.xhtml")
     toc_str = toc.read().decode("utf-8")
     soup = BeautifulSoup(toc_str, 'html.parser')
@@ -124,47 +173,76 @@ def create_toc(exclude_ids, frontmatter_ids):
     section["epub:type"] = section.get("epub:type", "") + " " + "bodymatter"
     section["id"] = "contents"
 
+    # loop over links to sections
     for a_tag in soup.find_all('a'):
+
+        # convert link to file to local link
         href = a_tag["href"]
         href = href.replace("text/", "#")
         href = href.replace(".xhtml", "")
         href = re.sub("[\\S]+#", "#", href)
         a_tag["href"] = href
 
+        # remove unwanted sections
         if a_tag.get("href", "") in exclude_ids:
             a_tag.decompose()
             continue
 
+        # add frontmatter class to all frontmatter sections (except half title page)
         if a_tag.get("href", "") != "#halftitlepage" and a_tag.get("href", "") in frontmatter_ids:
             a_tag["class"] = a_tag.get("class", []) + ["frontmatter"]
 
+    # clean up
     soup_str = str(section)
+    # remove unwanted artefacts, convert from <nav> to <section>
     soup_str = re.sub("<li>[\\s]+?</li>", "", soup_str)
-    soup_str = re.sub("(<a .*?>)[\\s\n]*?(.*?)[\\s\n]*?</a>", "\\2\\1</a>", soup_str)
-    soup_str = re.sub("<li>([\\s\\S]+?)<a", "<li><span>\\1</span><a", soup_str)
     soup_str = re.sub("<nav ", "<section ", soup_str)
     soup_str = re.sub("</nav>", "</section>", soup_str)
+
+    # move section name outside <a> tag, <a> tag should be empty
+    soup_str = re.sub("(<a .*?>)[\\s\n]*?(.*?)[\\s\n]*?</a>", "\\2\\1</a>", soup_str)
+    # add spans around section title, but not <a> tag
+    soup_str = re.sub("<li>([\\s\\S]+?)<a", "<li><span>\\1</span><a", soup_str)
+
     return soup_str
 
 def get_body(file):
+    """Extract body of an xhtml file.
+    
+    Returns a soup of the body with remote links replaced with local 
+    links. 
+    """
+
     html = urllib.request.urlopen(file)
     html_str = html.read().decode("utf-8")
     soup = BeautifulSoup(html_str, 'html.parser')
 
+    # convert remote links to local links
     correct_hrefs(soup)
 
     return soup.body
 
 def get_frontmatter(files):
+    """Returns a list of frontmatter files.
+
+    The will always be titlepage and imprint in the frontmatter. 
+    Additional frontmatter exists only if  halftitlepage exists. In that
+    case all the files before the halftitlepage will be frontmatter too.
+
+    files -- ordered list of all files
+    """
+
     frontmatter = ["#titlepage", "#imprint"]
     all_files = []
 
     for f in files:
         all_files.append("#" + f["idref"].replace(".xhtml",""))
 
+    # additional frontmatter exists only if there is a half title page
     if "#halftitlepage" in all_files:
         for f in all_files:
             if f == "#halftitlepage":
+                # frontmatter ends with half title page
                 break
             
             if f not in frontmatter:
@@ -173,33 +251,63 @@ def get_frontmatter(files):
     return frontmatter
 
 def correct_hrefs(soup):
+    """ Convert remote links to local links.
+
+    Links to remote files in the book repo are converted to local links.
+    Links to other sites are left untouched. These links can only occur
+    in the imprint and the colophon. 
+
+    soup -- soup of an xhtml file
+    """
+
+    # loop over all links
     for a_tag in soup.find_all('a'):
         href = a_tag["href"]
-        href = href.replace(".xhtml", "") #remove trailing .xhtml
+
+        #remove trailing .xhtml
+        href = href.replace(".xhtml", "")
+
+        #remove extra # in id references, however, proper urls in colophon and imprint can contain # so skip those
         if "colophon" not in soup.body.section["epub:type"] and "imprint" not in soup.body.section["epub:type"]:
-            href = re.sub("[\\S]+#", "#", href) #remove extra # in id references, proper urls in colophon and imprint can extra #
+            href = re.sub("[\\S]+#", "#", href) 
         else:
+            # add # to uncopyright reference
             href = href.replace("uncopyright", "#uncopyright")
 
         a_tag["href"] = href
         
+    # correct paths to images
     for img_tag in soup.find_all('img'):
         src =  img_tag["src"]
         src = src.replace("../", base_directory + "src/epub/")
         img_tag["src"] = src
 
 def add_page_references(soup, frontmatter_sections):
+    """Convert "see here" type notes to page references
+    
+    soup --- soup of section
+    frontmatter_sections -- list of frontmatter sections
+    """
+
+    # possible words to replace
     page_ref_contents = ["here", "Here", "above", "Above", "below", "Below", "supra", "Supra", "infra", "Infra"]
+
+    # loop over links
     for a_tag in soup.find_all('a'):
         href = a_tag["href"]
+
+        # check if it links to a specific paragraph
         if "-p-" in href:
+            # check if contents should be replaced
             if re.sub("<.*?>(.*?)</.*?>","\\1", str(a_tag.contents[0])) in page_ref_contents:
                 a_tag.contents = ""
+                # determine if link is to a frontmatter section or not 
                 if re.search("(#.*)(?:-p-)", str(a_tag)).group(1) in frontmatter_sections:
                     a_tag["class"] = a_tag.get("class", []) + ["fontpagereference"]
                 else:
                     a_tag["class"] = a_tag.get("class", []) + ["pagereference"]
 
+# make book!
 generate_css()
 generate_html()
 write_pdf()
