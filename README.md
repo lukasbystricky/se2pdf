@@ -12,6 +12,5 @@ A script to convert epubs from [Standard Ebooks](https://standardebooks.org) to 
 ## To do
 - Clean up code: add command line options, replace regex with better use of BeautifulSoup
 - Automatic scaling of text on back cover
-- Replace "see here" notes with page reference
 - Add option to convert endnotes to footnotes
 - Probably lots of other things
