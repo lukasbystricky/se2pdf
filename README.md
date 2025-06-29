@@ -1,7 +1,6 @@
 # se2pdf
 
-A script to convert epubs from [Standard Ebooks](https://standardebooks.org) to PDFs. It can be called by providing the identifier of the epub, for example
-
+A script to convert epubs from [Standard Ebooks](https://standardebooks.org) to PDFs.
 
 ## Dependencies
 - [Weasyprint](https://weasyprint.org)
