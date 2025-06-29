@@ -11,8 +11,8 @@ A script to convert epubs from [Standard Ebooks](https://standardebooks.org) to 
 ### Sample setup and call on MacOS
 
 ```
-python -m venv myenv
-source myenv/bin/activate
+python -m venv se2pdf
+source se2pdf/bin/activate
 pip install weasyprint
 pip install cssutils
 pip install beautifulsoup4
