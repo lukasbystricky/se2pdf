@@ -81,7 +81,7 @@ def generate_html():
         - front cover
         - titlepage
         - imprint
-        - frontmatter (if it exisits)
+        - frontmatter (if it exists)
         - half title page (if it exists)
         - table of contents (optional)
         - bodymatter
@@ -197,7 +197,7 @@ def create_toc(exclude_ids, frontmatter_ids):
 
     # clean up
     soup_str = str(section)
-    # remove unwanted artefacts, convert from <nav> to <section>
+    # remove unwanted artifacts, convert from <nav> to <section>
     soup_str = re.sub("<li>[\\s]+?</li>", "", soup_str)
     soup_str = re.sub("<nav ", "<section ", soup_str)
     soup_str = re.sub("</nav>", "</section>", soup_str)
