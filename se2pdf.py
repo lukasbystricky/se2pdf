@@ -100,7 +100,7 @@ def generate_html():
     xmlsoup = BeautifulSoup(content.read().decode("utf-8"), 'xml')
     files=xmlsoup.find_all("itemref")
     
-    # exlcude some files from table of contents, determine which files are frontmatter
+    # exclude some files from table of contents, determine which files are frontmatter
     exclude_from_toc = ["#titlepage", "#imprint", "#colophon", "#uncopyright", "#loi"]
     frontmatter_sections = get_frontmatter(files)
 
@@ -119,7 +119,6 @@ def generate_html():
 
         html_tmp = ""
         if body.section is not None:
-
             # add body type information to section
             if ("halftitlepage" in body.section.get("epub:type")):
                 # half title page is considered bodymatter for our purposes
@@ -136,6 +135,8 @@ def generate_html():
             if "frontmatter" not in body.get("epub:type") and not skip_toc and not tocAdded:
                     html_tmp += create_toc(exclude_from_toc, frontmatter_sections)
                     tocAdded = True
+                    breakpoint()
+
 
             # replace "see here" type notes with reference to page number
             add_page_references(body.section, frontmatter_sections)
@@ -147,9 +148,33 @@ def generate_html():
             html_tmp = html_tmp.replace("xml:", "")
             html_tmp = html_tmp.replace("<article class=\"", "<article class=\"bodymatter ")
 
-            # add to book
+            # add section to book
             html_str += html_tmp
     
+        # for poetry or short story collections, content may be a collection of articles
+        # What happens when some files contain open with a <section> element and others with <article>?
+        if body.article is not None:
+
+            # create the table of contents after the frontmatter (including half title page)
+            if "frontmatter" not in body.get("epub:type") and not skip_toc and not tocAdded:
+                    html_tmp += create_toc(exclude_from_toc, frontmatter_sections)
+                    tocAdded = True
+
+            for a in body.find_all('article'):
+                # replace "see here" type notes with reference to page number
+                add_page_references(a, frontmatter_sections)
+                # clean up, replace epub:type with class; remove xml and z3998 namespaces
+                html_tmp += str(re.sub("(?:, )?\\[?\\'\\\\n\\'(?:, )?\\]?", "", str(a)))
+                html_tmp = html_tmp.replace("z3998:", "",)
+                html_tmp = html_tmp.replace("epub:type", "class")
+                html_tmp = html_tmp.replace("xml:", "")
+                html_tmp = html_tmp.replace("<article class=\"", "<article class=\"bodymatter ")
+
+                # add articles to book
+                html_str += html_tmp
+                html_tmp = ""
+
+
     # create back cover by extracting long description from content.opf
     html_str +=  "<section id=\"backcover\"><div>" + xmlsoup.find("meta", {"id":"long-description"}).text + "</div></section>"
 
@@ -161,14 +186,14 @@ def generate_html():
 def create_toc(exclude_ids, frontmatter_ids):
     """Creates the table of contents.
     
-    Uses the list structure of the remove toc.xhtml, but replaces links 
+    Uses the list structure of the toc.xhtml, but replaces links 
     to section titles with a proper page reference.
 
     exclude_ids     -- sections to skip in toc
     frontmatter_ids -- frontmatter sections, these need to be marked
     """
 
-    # read remove toc
+    # read toc
     toc = urllib.request.urlopen(base_directory + "src/epub/toc.xhtml")
     toc_str = toc.read().decode("utf-8")
     soup = BeautifulSoup(toc_str, 'html.parser')
