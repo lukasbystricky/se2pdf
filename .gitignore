@@ -4,4 +4,5 @@
 *.log
 *.css
 !css/book.css
-!css/custom.css
+!css/custom.cs
+se2pdf/*
