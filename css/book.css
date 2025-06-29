@@ -8,6 +8,7 @@ CSS rules common to all books
     margin: 2cm 2cm 3cm 2cm; 
     size: 140mm 210mm;
 }
+
 @page { 
     @bottom-center { 
         position: absolute; 
@@ -79,15 +80,20 @@ html {
     width: 140mm;
 }
 
-section {
+section, article {
     page-break-after: always;
 }
 
-/*Remove until hanging-punctuation is supported by Weasyprint
-section, article {
+section, article > p{
     text-align: justify;
+    text-justify: inter-word;
 }
-*/
+
+.poem >p, .verse > p {
+    page-break-inside: avoid;
+    orphans: 3;
+    widows: 3;
+}
 
 .frontmatter {
     page: frontmatterpage;

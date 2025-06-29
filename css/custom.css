@@ -1,7 +1,20 @@
 #contents ol{
-    font-size: 1em;
+    font-size: 14px;
 }
 
 #backcover {
     font-size: 1em
+}
+
+figure{
+	margin: 1em 0px;
+}
+
+td {
+    display:table-cell;
+    height: 100%;
+}
+
+td.persona {
+    break-inside: avoid;
 }
