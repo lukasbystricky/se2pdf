@@ -75,7 +75,7 @@ def generate_css():
     f.close()
 
 def generate_html():
-    """ Generatre single html file.
+    """ Generate single html file.
 
     Creates a single html file containing the entire book. The file contains:
         - front cover

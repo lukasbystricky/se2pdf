@@ -84,12 +84,13 @@ section, article {
     page-break-after: always;
 }
 
+
 section, article > p{
     text-align: justify;
     text-justify: inter-word;
 }
 
-.poem >p, .verse > p {
+.poem > p, .verse > p {
     page-break-inside: avoid;
     orphans: 3;
     widows: 3;
