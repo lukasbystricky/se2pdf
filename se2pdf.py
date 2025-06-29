@@ -135,8 +135,6 @@ def generate_html():
             if "frontmatter" not in body.get("epub:type") and not skip_toc and not tocAdded:
                     html_tmp += create_toc(exclude_from_toc, frontmatter_sections)
                     tocAdded = True
-                    breakpoint()
-
 
             # replace "see here" type notes with reference to page number
             add_page_references(body.section, frontmatter_sections)
